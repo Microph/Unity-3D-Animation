@@ -6,8 +6,9 @@ using static UnityEngine.InputSystem.InputAction;
 
 public class AvatarController : MonoBehaviour
 {
-    public float MoveSpeed;
-    public float RotationSpeed;
+    public AnimationCurve AnimationCurve; //still not used, test only
+    public float MoveSpeed; // m/sec
+    public float RotationSpeed; //fixed secs from current to target
 
     [SerializeField] private Transform _cameraTransform;
     private CharacterController _characterController;

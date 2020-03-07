@@ -1648,7 +1648,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1055049071}
-  m_LocalRotation: {x: 0.17346147, y: 0.000000016976747, z: -0.0000000031617746, w: 0.9848407}
+  m_LocalRotation: {x: 0.17346147, y: -0.000000016914344, z: 0.000000002807514, w: 0.9848407}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -1993,6 +1993,57 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3867269196787774ea564f49e9e90ab1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  AnimationCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.15416893
+      value: 0.49683762
+      inSlope: -0.9398271
+      outSlope: -0.9398271
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.09986324
+    - serializedVersion: 3
+      time: 0.39293855
+      value: 0.47889653
+      inSlope: -2.0203671
+      outSlope: -2.0203671
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.20997447
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.63513297
+      value: 0.48478046
+      inSlope: 1.4741075
+      outSlope: 1.4741075
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   MoveSpeed: 3
   RotationSpeed: 3
   _cameraTransform: {fileID: 963194228}
@@ -2007,13 +2058,13 @@ CharacterController:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Height: 1.65
+  m_Height: 1.6
   m_Radius: 0.35
   m_SlopeLimit: 45
-  m_StepOffset: 0.3
+  m_StepOffset: 0
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0.8, z: 0}
+  m_Center: {x: 0, y: 0.81, z: 0}
 --- !u!1 &1968231845
 GameObject:
   m_ObjectHideFlags: 3
@@ -2080,7 +2131,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1968231845}
-  m_LocalRotation: {x: 0.22975291, y: -0.000000018703622, z: 0.00000000433901, w: 0.9732491}
+  m_LocalRotation: {x: 0.2297529, y: 0.000000018741781, z: -0.000000004500649, w: 0.9732491}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -2175,7 +2226,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1994773930}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2, y: 0.56, z: -2}
+  m_LocalPosition: {x: 3, y: 0.5, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
