@@ -7,8 +7,8 @@ using static UnityEngine.InputSystem.InputAction;
 public class AvatarController : MonoBehaviour
 {
     public AnimationCurve AnimationCurve; //still not used, test only
-    public float MoveSpeed; // m/sec
-    public float RotationSpeed; //fixed secs from current to target
+    public float MaxMoveSpeedPerSec; // m/sec
+    public float RotateAnglePerSec; //fixed secs from current to target
 
     [SerializeField] private Transform _cameraTransform;
     private CharacterController _characterController;
@@ -16,6 +16,13 @@ public class AvatarController : MonoBehaviour
     private Vector2 _moveInput;
     private Transform _characterTransform;
     private Animator _characterAnimator;
+    private float _currentMoveSpeed;
+    private float _currentRotateSpeed;
+    private float _currentMoveForwardLerpTime = 0;
+    private float _currentRotateLerpTime = 0;
+    private float _lastFixedUpdateSpeed = 0;
+
+    private bool _isMoving = false;
 
     private void Awake()
     {
@@ -45,6 +52,7 @@ public class AvatarController : MonoBehaviour
 
     private void UpdatePlayerInput(CallbackContext ctx)
     {
+        _isMoving = true;
         Debug.Log($"ctx: {ctx.ReadValue<Vector2>()}");
         _moveInput = ctx.ReadValue<Vector2>();
     }
@@ -52,28 +60,96 @@ public class AvatarController : MonoBehaviour
     private void FixedUpdate()
     {
         Debug.Log($"move input: { _moveInput }");
-        //RotateCharacter(_moveInput);
-        _characterController.Move(InputVectorToMoveVector(_moveInput));
+        if (_moveInput.magnitude < 0.1f && _isMoving)
+        {
+            _isMoving = false;
+            if (_lastFixedUpdateSpeed > MaxMoveSpeedPerSec / 2)
+            {
+                _characterAnimator.SetTrigger("sudden_stop_running");
+            }
+        }
+
+        if (_characterAnimator.GetCurrentAnimatorStateInfo(1).IsName("Stop"))
+        {
+            var fullTime = 0.5f;
+            var currentPlayingTime = (_characterAnimator.GetCurrentAnimatorStateInfo(1).normalizedTime / _characterAnimator.GetCurrentAnimatorStateInfo(1).length) * fullTime;
+            _characterAnimator.SetFloat("stopping_velocity", fullTime - currentPlayingTime / fullTime);
+            _lastFixedUpdateSpeed = 0;
+            return;
+        }
+        else
+        {
+            _characterAnimator.SetFloat("stopping_velocity", 0.5f);
+        }
+        
+        //Rotation
+        RotateCharacter(_moveInput);
+
+        //Forward Move
+        var forwardVector = InputVectorToMoveForwardVector();
+        float moveForwardLerpTime = 1;
+        _currentMoveForwardLerpTime += Time.fixedDeltaTime;
+        if (forwardVector.magnitude < 0.1f)
+        {
+            _currentMoveForwardLerpTime = 0;
+        }
+        else if (_currentMoveForwardLerpTime > moveForwardLerpTime)
+        {
+            _currentMoveForwardLerpTime = moveForwardLerpTime;
+        }
+        Debug.Log($"_currentLerpTime: {_currentMoveForwardLerpTime}");
+
+        //lerp!
+        float perc = _currentMoveForwardLerpTime / moveForwardLerpTime;
+        _currentMoveSpeed = Mathf.Lerp(0, MaxMoveSpeedPerSec, perc);
+        _lastFixedUpdateSpeed = _currentMoveSpeed;
+
+
+        //Move
+        _characterController.Move(forwardVector * _currentMoveSpeed * Time.fixedDeltaTime);
 
         //Animator values
-        _characterAnimator.SetFloat("forward_velocity", Mathf.Clamp(_moveInput.sqrMagnitude, 0, 1));
+        _characterAnimator.SetFloat("forward_velocity", (forwardVector.magnitude * _currentMoveSpeed) / MaxMoveSpeedPerSec);
+        Debug.Log($"velocity: {forwardVector * _currentMoveSpeed}");
     }
 
     private void RotateCharacter(Vector2 moveInput)
     {
+        if(Mathf.Approximately(moveInput.magnitude, 0f))
+        {
+            return;
+        }
+
         float inputZ = moveInput.y;
         float inputX = moveInput.x;
-        float cameraAngleDiffWithInput = Vector3.Angle(new Vector2(0, 1), moveInput); //Mathf.Acos(Vector2.Dot(new Vector2(0, 1), inputDir) / inputDir.magnitude) * Mathf.Rad2Deg;
-        float targetRotationYDegree = _cameraTransform.eulerAngles.y + (inputX > 0 ? cameraAngleDiffWithInput : -cameraAngleDiffWithInput);
-        float targetRotationZDegree = Mathf.Clamp(_characterTransform.eulerAngles.y - targetRotationYDegree, -10f, 10f); //For tilting when sharp turnfloat inputMagnitude = Mathf.Clamp(moveInput.magnitude, 0, 1);
-        Quaternion targetRotationQuarternion = Quaternion.Euler(0, _characterTransform.rotation.y + targetRotationYDegree, _characterTransform.rotation.z + targetRotationZDegree);
-        _characterTransform.rotation = Quaternion.Lerp(_characterTransform.rotation, targetRotationQuarternion, Time.fixedDeltaTime / RotationSpeed);
+        float characterAngleDiffWithInput = Vector3.Angle(new Vector2(0, 1), moveInput); //Mathf.Acos(Vector2.Dot(new Vector2(0, 1), inputDir) / inputDir.magnitude) * Mathf.Rad2Deg;
+        float targetRotationYDegree = _characterTransform.rotation.y + (inputX > 0 ? characterAngleDiffWithInput : -characterAngleDiffWithInput);
+        //float targetRotationZDegree = Mathf.Clamp(_characterTransform.eulerAngles.y - targetRotationYDegree, -10f, 10f); //For tilting when sharp turnfloat inputMagnitude = Mathf.Clamp(moveInput.magnitude, 0, 1);
+        Quaternion targetRotationQuarternion = Quaternion.Euler(0, targetRotationYDegree, _characterTransform.rotation.z /*+ targetRotationZDegree*/);
+
+        /*float rotateLerpTime = 1;
+        _currentMoveForwardLerpTime += Time.fixedDeltaTime;
+        if (/*forwardVector.magnitude < 0.1f angle < 0.34)
+        {
+            _currentMoveForwardLerpTime = 0;
+        }
+        else if (_currentMoveForwardLerpTime > rotateLerpTime)
+        {
+            _currentMoveForwardLerpTime = rotateLerpTime;
+        }
+        Debug.Log($"_currentLerpTime: {_currentMoveForwardLerpTime}");*/
+        _characterTransform.rotation = targetRotationQuarternion;
     }
 
-    private Vector3 InputVectorToMoveVector(Vector2 moveInput)
+    private Vector3 InputVectorToMoveForwardVector()
     {
-        Vector3 velocity = new Vector3(0, 0, Mathf.Clamp(_moveInput.sqrMagnitude, 0, 1));
-        velocity = _characterTransform.TransformDirection(velocity);
-        return velocity * MoveSpeed * Time.fixedDeltaTime;
+        Vector3 projVector = Vector3.Project(new Vector3(_moveInput.x, 0, _moveInput.y), _characterTransform.forward);
+        Debug.Log($"projVector: {projVector}");
+        Debug.Log($"projVector magnitude: {projVector.magnitude}");
+
+
+        Vector3 outputVector = new Vector3(0, 0, projVector.magnitude);
+        outputVector = _characterTransform.TransformDirection(outputVector);
+        return outputVector;
     }
 }
