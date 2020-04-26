@@ -59,8 +59,7 @@ public class AvatarController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        /*
-        //Debug.Log($"move input: { _moveInput }");
+        OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.MoveInput, _moveInput);
         if (_moveInput.magnitude < 0.1f || _characterAnimator.GetCurrentAnimatorStateInfo(1).IsName("Stop"))
         {
             #region Stop State Update
@@ -84,7 +83,6 @@ public class AvatarController : MonoBehaviour
         {
             _characterAnimator.SetFloat("stopping_velocity", 0.5f);
         }
-        */
 
         #region Character Rotation
         RotateCharacter(_moveInput);
@@ -133,8 +131,20 @@ public class AvatarController : MonoBehaviour
         Vector3 cameraVectorOnXZPlane = Vector3.ProjectOnPlane(_cameraTransform.forward, Vector3.up);
         float characterAngleDiffWithCamera = Vector3.SignedAngle(characterVectorOnXZPlane, cameraVectorOnXZPlane, Vector3.up);
         float targetRotationAngle = inputAngleDiffWithCamera + characterAngleDiffWithCamera;
+        OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.TargetRotationAngle, targetRotationAngle);
 
-        _characterTransform.Rotate(new Vector3(0, targetRotationAngle, 0));
+        float fixedRotateAmount = 15;
+        if(Mathf.Abs(fixedRotateAmount) > Mathf.Abs(targetRotationAngle))
+        {
+            fixedRotateAmount = targetRotationAngle;
+        }
+        else if((targetRotationAngle < 0 && targetRotationAngle > -180) || targetRotationAngle > 180)
+        {
+            fixedRotateAmount *= -1;
+        }
+
+        OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.FixedRotateAmount, fixedRotateAmount);
+        _characterTransform.Rotate(new Vector3(0, fixedRotateAmount, 0));
     }
 
     private Vector3 InputVectorToMoveForwardVector()
