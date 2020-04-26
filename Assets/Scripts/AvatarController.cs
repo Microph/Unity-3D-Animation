@@ -59,7 +59,7 @@ public class AvatarController : MonoBehaviour
 
     private void FixedUpdate()
     {
-
+        /*
         //Debug.Log($"move input: { _moveInput }");
         if (_moveInput.magnitude < 0.1f || _characterAnimator.GetCurrentAnimatorStateInfo(1).IsName("Stop"))
         {
@@ -84,11 +84,12 @@ public class AvatarController : MonoBehaviour
         {
             _characterAnimator.SetFloat("stopping_velocity", 0.5f);
         }
+        */
 
         #region Character Rotation
         RotateCharacter(_moveInput);
         #endregion
-
+        /*
         #region Character Translation
         var forwardVector = InputVectorToMoveForwardVector();
         float moveForwardLerpTime = 1;
@@ -117,6 +118,7 @@ public class AvatarController : MonoBehaviour
         _characterAnimator.SetFloat("forward_velocity", (forwardVector.magnitude * _currentMoveSpeed) / MaxMoveSpeedPerSec);
         //Debug.Log($"velocity: {forwardVector * _currentMoveSpeed}");
         #endregion
+        */
     }
 
     private void RotateCharacter(Vector2 moveInput)
@@ -127,10 +129,11 @@ public class AvatarController : MonoBehaviour
         }
 
         float inputAngleDiffWithCamera = Vector3.SignedAngle(new Vector3(0, 0, 1), new Vector3(moveInput.x, 0, moveInput.y), Vector3.up); //Mathf.Acos(Vector2.Dot(new Vector2(0, 1), inputDir) / inputDir.magnitude) * Mathf.Rad2Deg;
-        //Debug.Log($"characterAngleDiffWithInput: {inputAngleDiffWithCamera}");
-        float characterAngleDiffWithCamera = Vector3.SignedAngle(_characterTransform.forward, _cameraTransform.forward, Vector3.up);
-        //Debug.Log($"characterAngleDiffWithCamera: {characterAngleDiffWithCamera}");
+        Vector3 characterVectorOnXZPlane = Vector3.ProjectOnPlane(_characterTransform.forward, Vector3.up);
+        Vector3 cameraVectorOnXZPlane = Vector3.ProjectOnPlane(_cameraTransform.forward, Vector3.up);
+        float characterAngleDiffWithCamera = Vector3.SignedAngle(characterVectorOnXZPlane, cameraVectorOnXZPlane, Vector3.up);
         float targetRotationAngle = inputAngleDiffWithCamera + characterAngleDiffWithCamera;
+
         _characterTransform.Rotate(new Vector3(0, targetRotationAngle, 0));
     }
 
