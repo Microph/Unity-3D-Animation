@@ -26,19 +26,34 @@ public class OnScreenDebugText : MonoBehaviour
 
         _instance = this;
         DontDestroyOnLoad(this);
+        Setup();
     }
     #endregion
-
-    public TMP_Text[] TextObjList;
+    
     public enum OnScreenTextEnum
     {
-        MoveInput
-        , TargetRotationAngle
-        , FixedRotateAmount
+        MoveInput,
+        MoveInputMagnitude,
+        IsMoving,
+        TargetRotationAngle,
+        FixedRotateAmount,
+        MaxVeloPerc,
+        AccumTranslationPerc,
+        TranslationPercFromCurve,
+        CharacterForwardVectorOnXZPlane,
+        CameraVectorOnXZPlane,
+        InputVectorProjectedOnCharacterForwardVectorOnXZPlane,
     }
+
+    private TMP_Text[] _textObjList;
 
     public void Log(OnScreenTextEnum enumType, object toBeLog)
     {
-        TextObjList[enumType.GetHashCode()].text = $"{ enumType }: { toBeLog.ToString() }";
+        _textObjList[enumType.GetHashCode()].text = $"{ enumType }: { toBeLog.ToString() }";
+    }
+
+    private void Setup()
+    {
+        _textObjList = transform.GetComponentsInChildren<TMP_Text>();
     }
 }
