@@ -53,39 +53,43 @@ public class AvatarController : MonoBehaviour
     private void UpdatePlayerInput(CallbackContext ctx)
     {
         _isMoving = true;
-        Debug.Log($"ctx: {ctx.ReadValue<Vector2>()}");
+        //Debug.Log($"ctx: {ctx.ReadValue<Vector2>()}");
         _moveInput = ctx.ReadValue<Vector2>();
     }
 
     private void FixedUpdate()
     {
-        Debug.Log($"move input: { _moveInput }");
-        if (_moveInput.magnitude < 0.1f && _isMoving)
-        {
-            _isMoving = false;
-            if (_lastFixedUpdateSpeed > MaxMoveSpeedPerSec / 2)
-            {
-                _characterAnimator.SetTrigger("sudden_stop_running");
-            }
-        }
 
-        if (_characterAnimator.GetCurrentAnimatorStateInfo(1).IsName("Stop"))
+        //Debug.Log($"move input: { _moveInput }");
+        if (_moveInput.magnitude < 0.1f || _characterAnimator.GetCurrentAnimatorStateInfo(1).IsName("Stop"))
         {
+            #region Stop State Update
+            if (_isMoving)
+            {
+                _isMoving = false;
+                if (_lastFixedUpdateSpeed > MaxMoveSpeedPerSec / 2f)
+                {
+                    _characterAnimator.SetTrigger("sudden_stop_running");
+                }
+            }
+
             var fullTime = 0.5f;
             var currentPlayingTime = (_characterAnimator.GetCurrentAnimatorStateInfo(1).normalizedTime / _characterAnimator.GetCurrentAnimatorStateInfo(1).length) * fullTime;
             _characterAnimator.SetFloat("stopping_velocity", fullTime - currentPlayingTime / fullTime);
             _lastFixedUpdateSpeed = 0;
+            #endregion
             return;
         }
         else
         {
             _characterAnimator.SetFloat("stopping_velocity", 0.5f);
         }
-        
-        //Rotation
-        RotateCharacter(_moveInput);
 
-        //Forward Move
+        #region Character Rotation
+        RotateCharacter(_moveInput);
+        #endregion
+
+        #region Character Translation
         var forwardVector = InputVectorToMoveForwardVector();
         float moveForwardLerpTime = 1;
         _currentMoveForwardLerpTime += Time.fixedDeltaTime;
@@ -97,7 +101,7 @@ public class AvatarController : MonoBehaviour
         {
             _currentMoveForwardLerpTime = moveForwardLerpTime;
         }
-        Debug.Log($"_currentLerpTime: {_currentMoveForwardLerpTime}");
+        //Debug.Log($"_currentLerpTime: {_currentMoveForwardLerpTime}");
 
         //lerp!
         float perc = _currentMoveForwardLerpTime / moveForwardLerpTime;
@@ -107,10 +111,12 @@ public class AvatarController : MonoBehaviour
 
         //Move
         _characterController.Move(forwardVector * _currentMoveSpeed * Time.fixedDeltaTime);
+        #endregion
 
-        //Animator values
+        #region Set Animator Values
         _characterAnimator.SetFloat("forward_velocity", (forwardVector.magnitude * _currentMoveSpeed) / MaxMoveSpeedPerSec);
-        Debug.Log($"velocity: {forwardVector * _currentMoveSpeed}");
+        //Debug.Log($"velocity: {forwardVector * _currentMoveSpeed}");
+        #endregion
     }
 
     private void RotateCharacter(Vector2 moveInput)
@@ -120,32 +126,19 @@ public class AvatarController : MonoBehaviour
             return;
         }
 
-        float inputZ = moveInput.y;
-        float inputX = moveInput.x;
-        float characterAngleDiffWithInput = Vector3.Angle(new Vector2(0, 1), moveInput); //Mathf.Acos(Vector2.Dot(new Vector2(0, 1), inputDir) / inputDir.magnitude) * Mathf.Rad2Deg;
-        float targetRotationYDegree = _characterTransform.rotation.y + (inputX > 0 ? characterAngleDiffWithInput : -characterAngleDiffWithInput);
-        //float targetRotationZDegree = Mathf.Clamp(_characterTransform.eulerAngles.y - targetRotationYDegree, -10f, 10f); //For tilting when sharp turnfloat inputMagnitude = Mathf.Clamp(moveInput.magnitude, 0, 1);
-        Quaternion targetRotationQuarternion = Quaternion.Euler(0, targetRotationYDegree, _characterTransform.rotation.z /*+ targetRotationZDegree*/);
-
-        /*float rotateLerpTime = 1;
-        _currentMoveForwardLerpTime += Time.fixedDeltaTime;
-        if (/*forwardVector.magnitude < 0.1f angle < 0.34)
-        {
-            _currentMoveForwardLerpTime = 0;
-        }
-        else if (_currentMoveForwardLerpTime > rotateLerpTime)
-        {
-            _currentMoveForwardLerpTime = rotateLerpTime;
-        }
-        Debug.Log($"_currentLerpTime: {_currentMoveForwardLerpTime}");*/
-        _characterTransform.rotation = targetRotationQuarternion;
+        float inputAngleDiffWithCamera = Vector3.SignedAngle(new Vector3(0, 0, 1), new Vector3(moveInput.x, 0, moveInput.y), Vector3.up); //Mathf.Acos(Vector2.Dot(new Vector2(0, 1), inputDir) / inputDir.magnitude) * Mathf.Rad2Deg;
+        //Debug.Log($"characterAngleDiffWithInput: {inputAngleDiffWithCamera}");
+        float characterAngleDiffWithCamera = Vector3.SignedAngle(_characterTransform.forward, _cameraTransform.forward, Vector3.up);
+        //Debug.Log($"characterAngleDiffWithCamera: {characterAngleDiffWithCamera}");
+        float targetRotationAngle = inputAngleDiffWithCamera + characterAngleDiffWithCamera;
+        _characterTransform.Rotate(new Vector3(0, targetRotationAngle, 0));
     }
 
     private Vector3 InputVectorToMoveForwardVector()
     {
         Vector3 projVector = Vector3.Project(new Vector3(_moveInput.x, 0, _moveInput.y), _characterTransform.forward);
-        Debug.Log($"projVector: {projVector}");
-        Debug.Log($"projVector magnitude: {projVector.magnitude}");
+        //Debug.Log($"projVector: {projVector}");
+        //Debug.Log($"projVector magnitude: {projVector.magnitude}");
 
 
         Vector3 outputVector = new Vector3(0, 0, projVector.magnitude);
