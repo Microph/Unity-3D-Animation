@@ -65,7 +65,7 @@ public class AvatarController : MonoBehaviour
         if (_moveInput.magnitude < 0.1f /*|| _characterAnimator.GetCurrentAnimatorStateInfo(1).IsName("Stop")*/)
         {
             _isMoving = false;
-            #region Stop State Update
+            #region Sudden Stop State Update
             //if (_isMoving)
             //{
             //    _isMoving = false;
