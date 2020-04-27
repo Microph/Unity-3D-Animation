@@ -43,6 +43,7 @@ public class OnScreenDebugText : MonoBehaviour
         CharacterForwardVectorOnXZPlane,
         CameraVectorOnXZPlane,
         InputVectorProjectedOnCharacterForwardVectorOnXZPlane,
+        MaxPercMagnitude,
     }
 
     private TMP_Text[] _textObjList;
