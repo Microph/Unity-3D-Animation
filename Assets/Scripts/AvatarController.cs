@@ -10,6 +10,7 @@ public class AvatarController : MonoBehaviour
     public AnimationCurve TranslationPercCurve;
     public float MaxTranslationMeterPerUpdate;
     public float FixedAnimatorUpdateValuePerUpdate;
+    public float StoppingMaxDuration;
 
     [SerializeField] private Transform _cameraTransform;
 
@@ -23,6 +24,7 @@ public class AvatarController : MonoBehaviour
     private float _accumTranslationPerc = 0;
     private float _lastTranslationPercFromCurve = 0;
     private float _lastUpdateTranslationAmount = 0;
+    private float _currentStoppingDuration = 0;
     private Vector3 _characterForwardVectorOnXZPlane;
     private Vector3 _cameraVectorOnXZPlane;
 
@@ -62,17 +64,14 @@ public class AvatarController : MonoBehaviour
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.MoveInput, _moveInput);
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.MoveInputMagnitude, _moveInput.magnitude);
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.IsRunning, _isRunning);
-        if (_isRunning && _moveInput.magnitude < 0.1f)
+        if (_isRunning && Mathf.Approximately(_moveInput.magnitude, 0)) //Sudden Stop
         {
-            _isRunning = false;
             if(Mathf.Approximately(_lastUpdateTranslationAmount, MaxTranslationMeterPerUpdate))
             {
+                _isRunning = false;
+                _currentStoppingDuration = StoppingMaxDuration;
                 _characterAnimator.SetTrigger("stop_running");
             }
-        }
-        else if(_moveInput.magnitude >= 0.1f)
-        {
-            _isRunning = true;
         }
 
         _characterForwardVectorOnXZPlane = Vector3.ProjectOnPlane(_characterTransform.forward, Vector3.up);
@@ -81,15 +80,12 @@ public class AvatarController : MonoBehaviour
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.CameraVectorOnXZPlane, _cameraVectorOnXZPlane);
         RotateCharacter();
         TranslateCharacter();
-        float currentAnimatorForwardVelocity = _characterAnimator.GetFloat("forward_velocity");
-        float fixedAnimatorUpdateValuePerUpdate = FixedAnimatorUpdateValuePerUpdate;
-        fixedAnimatorUpdateValuePerUpdate *= (_lastTranslationPercFromCurve < currentAnimatorForwardVelocity ? -1 : 1);
-        _characterAnimator.SetFloat("forward_velocity", currentAnimatorForwardVelocity + fixedAnimatorUpdateValuePerUpdate);
+        _characterAnimator.SetFloat("forward_velocity", _lastTranslationPercFromCurve);
     }
 
     private void RotateCharacter()
     {
-        if(Mathf.Approximately(_moveInput.magnitude, 0))
+        if (!_isRunning || Mathf.Approximately(_moveInput.magnitude, 0))
         {
             return;
         }
@@ -97,22 +93,22 @@ public class AvatarController : MonoBehaviour
         float inputAngleDiffWithCamera = Vector3.SignedAngle(Vector3.forward, new Vector3(_moveInput.x, 0, _moveInput.y), Vector3.up); //Mathf.Acos(Vector2.Dot(new Vector2(0, 1), inputDir) / inputDir.magnitude) * Mathf.Rad2Deg;
         float characterAngleDiffWithCamera = Vector3.SignedAngle(_characterForwardVectorOnXZPlane, _cameraVectorOnXZPlane, Vector3.up);
         float targetRotationAngle = inputAngleDiffWithCamera + characterAngleDiffWithCamera;
-        if(targetRotationAngle > 180)
+        if (targetRotationAngle > 180)
         {
             targetRotationAngle = targetRotationAngle - 360;
         }
-        else if(targetRotationAngle < -180)
+        else if (targetRotationAngle < -180)
         {
             targetRotationAngle = targetRotationAngle + 360;
         }
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.TargetRotationAngle, targetRotationAngle);
 
         float fixedrotateAngle = RotateAnglePerUpdate;
-        if(Mathf.Abs(fixedrotateAngle) > Mathf.Abs(targetRotationAngle))
+        if (Mathf.Abs(fixedrotateAngle) > Mathf.Abs(targetRotationAngle))
         {
             fixedrotateAngle = targetRotationAngle;
         }
-        else if(targetRotationAngle < 0)
+        else if (targetRotationAngle < 0)
         {
             fixedrotateAngle *= -1;
         }
@@ -123,29 +119,27 @@ public class AvatarController : MonoBehaviour
 
     private void TranslateCharacter()
     {
-        float maxVeloPerc = 1; //For now, it will take 1 sec to lerp from 0-1 in curve
+        float maxVeloPerc = _moveInput.magnitude;
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.MaxVeloPerc, maxVeloPerc);
-        if (_isRunning)
+        if (maxVeloPerc > 0 && _currentStoppingDuration == 0)
         {
-            if(_accumTranslationPerc < maxVeloPerc)
-            {
-                _accumTranslationPerc += Time.fixedDeltaTime;
-            }
-            else
-            {
-                _accumTranslationPerc = maxVeloPerc;
-            }
+            _isRunning = true;
+            _accumTranslationPerc += Time.fixedDeltaTime;
+            _accumTranslationPerc = Mathf.Min(_accumTranslationPerc, maxVeloPerc);
         }
         else
         {
-            _accumTranslationPerc = 0;
+            _isRunning = false;
+            _currentStoppingDuration -= _currentStoppingDuration < 0 ? _currentStoppingDuration : Time.fixedDeltaTime;
+            _accumTranslationPerc -= Time.fixedDeltaTime * 1.5f;
+            _accumTranslationPerc = Mathf.Max(_accumTranslationPerc, 0);
         }
 
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.AccumTranslationPerc, _accumTranslationPerc);
-        _lastTranslationPercFromCurve = TranslationPercCurve.Evaluate(Mathf.Lerp(0, 1, Mathf.Clamp(_accumTranslationPerc, 0, maxVeloPerc)));
+        _lastTranslationPercFromCurve = TranslationPercCurve.Evaluate(_accumTranslationPerc);
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.TranslationPercFromCurve, _lastTranslationPercFromCurve);
         _lastUpdateTranslationAmount = MaxTranslationMeterPerUpdate * _lastTranslationPercFromCurve;
         _characterController.Move(_characterForwardVectorOnXZPlane * _lastUpdateTranslationAmount);
     }
-
+    
 }
