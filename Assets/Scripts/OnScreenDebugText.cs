@@ -25,7 +25,6 @@ public class OnScreenDebugText : MonoBehaviour
         }
 
         _instance = this;
-        DontDestroyOnLoad(this);
         Setup();
     }
     #endregion
@@ -34,7 +33,7 @@ public class OnScreenDebugText : MonoBehaviour
     {
         MoveInput,
         MoveInputMagnitude,
-        IsMoving,
+        IsRunning,
         TargetRotationAngle,
         FixedRotateAmount,
         MaxVeloPerc,

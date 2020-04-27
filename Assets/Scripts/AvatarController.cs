@@ -9,6 +9,7 @@ public class AvatarController : MonoBehaviour
     public float RotateAnglePerUpdate;
     public AnimationCurve TranslationPercCurve;
     public float MaxTranslationMeterPerUpdate;
+    public float FixedAnimatorUpdateValuePerUpdate;
 
     [SerializeField] private Transform _cameraTransform;
 
@@ -18,7 +19,7 @@ public class AvatarController : MonoBehaviour
     private Transform _characterTransform;
     private Animator _characterAnimator;
 
-    private bool _isMoving = false;
+    private bool _isRunning = false;
     private float _accumTranslationPerc = 0;
     private float _lastTranslationPercFromCurve = 0;
     private float _lastUpdateTranslationAmount = 0;
@@ -53,7 +54,6 @@ public class AvatarController : MonoBehaviour
 
     private void UpdatePlayerInput(CallbackContext ctx)
     {
-        _isMoving = true;
         _moveInput = ctx.ReadValue<Vector2>();
     }
 
@@ -61,30 +61,18 @@ public class AvatarController : MonoBehaviour
     {
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.MoveInput, _moveInput);
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.MoveInputMagnitude, _moveInput.magnitude);
-        OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.IsMoving, _isMoving);
-        if (_moveInput.magnitude < 0.1f /*|| _characterAnimator.GetCurrentAnimatorStateInfo(1).IsName("Stop")*/)
+        OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.IsRunning, _isRunning);
+        if (_isRunning && _moveInput.magnitude < 0.1f)
         {
-            _isMoving = false;
-            #region Sudden Stop State Update
-            //if (_isMoving)
-            //{
-            //    _isMoving = false;
-            //    if (_lastUpdateTranslationAmount > MaxTranslationMeterPerUpdate * 0.9f)
-            //    {
-            //        _characterAnimator.SetTrigger("sudden_stop_running");
-            //    }
-            //}
-
-            //var fullTime = 0.5f;
-            //var currentPlayingTime = (_characterAnimator.GetCurrentAnimatorStateInfo(1).normalizedTime / _characterAnimator.GetCurrentAnimatorStateInfo(1).length) * fullTime;
-            //_characterAnimator.SetFloat("stopping_velocity", fullTime - currentPlayingTime / fullTime);
-            //_lastUpdateTranslationAmount = 0;
-            #endregion
+            _isRunning = false;
+            if(Mathf.Approximately(_lastUpdateTranslationAmount, MaxTranslationMeterPerUpdate))
+            {
+                _characterAnimator.SetTrigger("stop_running");
+            }
         }
-        else
+        else if(_moveInput.magnitude >= 0.1f)
         {
-            _isMoving = true;
-            //_characterAnimator.SetFloat("stopping_velocity", 0.5f);
+            _isRunning = true;
         }
 
         _characterForwardVectorOnXZPlane = Vector3.ProjectOnPlane(_characterTransform.forward, Vector3.up);
@@ -93,8 +81,10 @@ public class AvatarController : MonoBehaviour
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.CameraVectorOnXZPlane, _cameraVectorOnXZPlane);
         RotateCharacter();
         TranslateCharacter();
-        
-        _characterAnimator.SetFloat("forward_velocity", _lastTranslationPercFromCurve);
+        float currentAnimatorForwardVelocity = _characterAnimator.GetFloat("forward_velocity");
+        float fixedAnimatorUpdateValuePerUpdate = FixedAnimatorUpdateValuePerUpdate;
+        fixedAnimatorUpdateValuePerUpdate *= (_lastTranslationPercFromCurve < currentAnimatorForwardVelocity ? -1 : 1);
+        _characterAnimator.SetFloat("forward_velocity", currentAnimatorForwardVelocity + fixedAnimatorUpdateValuePerUpdate);
     }
 
     private void RotateCharacter()
@@ -133,13 +123,13 @@ public class AvatarController : MonoBehaviour
 
     private void TranslateCharacter()
     {
-        float maxVeloPerc = 1;
+        float maxVeloPerc = 1; //For now, it will take 1 sec to lerp from 0-1 in curve
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.MaxVeloPerc, maxVeloPerc);
-        if (_isMoving)
+        if (_isRunning)
         {
             if(_accumTranslationPerc < maxVeloPerc)
             {
-                _accumTranslationPerc += Time.fixedDeltaTime; //For now, it will take 1 sec to lerp from 0-1 in curve
+                _accumTranslationPerc += Time.fixedDeltaTime;
             }
             else
             {
