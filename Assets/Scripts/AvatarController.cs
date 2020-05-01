@@ -90,7 +90,7 @@ public class AvatarController : MonoBehaviour
             return;
         }
 
-        float inputAngleDiffWithCamera = Vector3.SignedAngle(Vector3.forward, new Vector3(_moveInput.x, 0, _moveInput.y), Vector3.up); //Mathf.Acos(Vector2.Dot(new Vector2(0, 1), inputDir) / inputDir.magnitude) * Mathf.Rad2Deg;
+        float inputAngleDiffWithCamera = Vector3.SignedAngle(Vector3.forward, new Vector3(_moveInput.x, 0, _moveInput.y), Vector3.up);
         float characterAngleDiffWithCamera = Vector3.SignedAngle(_characterForwardVectorOnXZPlane, _cameraVectorOnXZPlane, Vector3.up);
         float targetRotationAngle = inputAngleDiffWithCamera + characterAngleDiffWithCamera;
         if (targetRotationAngle > 180)
@@ -139,7 +139,7 @@ public class AvatarController : MonoBehaviour
         _lastTranslationPercFromCurve = TranslationPercCurve.Evaluate(_accumTranslationPerc);
         OnScreenDebugText.Instance.Log(OnScreenDebugText.OnScreenTextEnum.TranslationPercFromCurve, _lastTranslationPercFromCurve);
         _lastUpdateTranslationAmount = MaxTranslationMeterPerUpdate * _lastTranslationPercFromCurve;
-        _characterController.Move(_characterForwardVectorOnXZPlane * _lastUpdateTranslationAmount);
+        _characterController.Move(_characterForwardVectorOnXZPlane.normalized * _lastUpdateTranslationAmount);
     }
     
 }
